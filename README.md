@@ -81,3 +81,15 @@ Depois de alterar as variáveis, faça um novo deploy da Vercel. Nunca coloque w
 4. Substituir produtos, preços e prévia demonstrativos pelo material real.
 
 O teste visual pode ser feito adicionando um produto, abrindo a sacola, clicando em “Revisar pedido”, “Comprar agora” e “Ver como ficará após pagamento (simulação)”. O resultado informa expressamente que nada foi cobrado nem entregue.
+
+
+## Recursos novos do catálogo
+
+- Busca por nome/descrição, filtros de categoria e framework, ordenação por preço, favoritos locais e comparação de até três produtos.
+- Kit “Gestão de Facção” aplica desconto demonstrativo de 15% quando inclui Painel da Facção e Ranking de Farm.
+- Cupom de teste `TITANS10` aplica 10% na demonstração. O valor não é cobrado e não deve ser divulgado como promoção real.
+- Seletor BRL/EUR/USD usa taxas fixas ilustrativas. O seletor English traduz alguns controles principais; não é uma tradução completa do conteúdo.
+- Galeria, requisitos, compatibilidades, novidades e políticas são modelos para preencher com informações verdadeiras dos scripts. A galeria é construída com elementos de interface, não representa capturas de produtos prontos.
+- O formulário de checkout pede confirmação do framework/requisitos para demonstrar esse passo; ainda não existe integração de pagamento.
+
+As regras de licença, suporte, atualizações, reembolso e compatibilidade estão como textos de orientação. Substitua pelos termos reais da Titans Studio antes de publicar vendas.
