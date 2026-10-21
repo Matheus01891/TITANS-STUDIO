@@ -98,11 +98,14 @@ As regras de licença, suporte, atualizações, reembolso e compatibilidade est�
 
 ## Ativar a IA de suporte e o atendente
 
-Na Vercel, em **Settings → Environment Variables**, configure:
+Na Vercel, em **Settings → Environment Variables**, configure uma das opções abaixo. A chave do Google AI Studio deve ser usada como Gemini:
 
-- `OPENAI_API_KEY` — chave secreta da API, marcada como Secret. A chave fica apenas no servidor e não deve ser colocada no HTML ou no GitHub. A IA usa a Responses API e o modelo padrão `gpt-5.6-luna`; o uso da API pode gerar cobrança por tokens e é separado da assinatura do ChatGPT.
+- `GEMINI_API_KEY` — chave do Google AI Studio (Gemini), marcada como Secret. Se esta variável existir, a rota usa Gemini primeiro. O modelo padrão é `gemini-3.8-flash`.
+- `GEMINI_MODEL` — opcional; por padrão usa `gemini-3.8-flash`.
+
+- `OPENAI_API_KEY` — alternativa para usar a OpenAI caso não configure `GEMINI_API_KEY`. A chave fica apenas no servidor e não deve ser colocada no HTML ou no GitHub. A IA usa a Responses API e o modelo padrão `gpt-6-luna`; o uso da API pode gerar cobrança por tokens e é separado da assinatura do ChatGPT.
 - `SUPPORT_CONTACT_URL` — link de convite/canal do Discord ou endereço `mailto:` para atendimento humano. Use um link de atendimento que seus clientes possam abrir; não use `DISCORD_WEBHOOK_URL` nem token do bot.
-- `OPENAI_MODEL` — opcional; por padrão usa `gpt-5.6-luna`.
+- `OPENAI_MODEL` — opcional; por padrão usa `gpt-6-luna` quando estiver usando OpenAI.
 
 A rota limita cada IP a 18 perguntas por hora e o site a 120 perguntas por dia usando o Upstash Redis que já protege as prévias. Ela guarda no Redis uma chave derivada do IP para aplicar esse limite. O texto da dúvida e o histórico recente são enviados à API de IA para formular a resposta; o widget avisa o cliente para não enviar senhas nem dados de pagamento.
 
