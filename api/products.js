@@ -16,7 +16,8 @@ module.exports = async function handler(req, res) {
       order: 'is_featured.desc,created_at.desc',
     }).toString();
     const response = await fetch(endpoint, {
-      headers: { apikey: key, Authorization: `Bearer ${key}` },
+      // Supabase publishable keys are API keys, not JWT bearer tokens.
+      headers: { apikey: key },
     });
     if (!response.ok) throw new Error(`Supabase HTTP ${response.status}`);
     const products = await response.json();

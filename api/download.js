@@ -36,7 +36,8 @@ module.exports = async function handler(req, res) {
   const user = await userResponse.json().catch(() => ({}));
   if (!user.id) return res.status(401).json({ error: 'Não foi possível validar sua conta.' });
 
-  const adminHeaders = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` };
+  // Supabase secret keys are sent as the apikey header, not as Bearer JWTs.
+  const adminHeaders = { apikey: serviceKey };
   const query = new URLSearchParams({ select: 'id,status', code: `eq.${orderCode}`, user_id: `eq.${user.id}`, status: 'in.(paid,fulfilled)', limit: '1' });
   const ordersResponse = await fetch(`${root}/rest/v1/orders?${query}`, { headers: adminHeaders }).catch(() => null);
   if (!ordersResponse?.ok) return res.status(503).json({ error: 'Não foi possível consultar o pedido agora.' });
