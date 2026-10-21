@@ -78,16 +78,67 @@ function outputText(result) {
     .filter(part => part.type === 'output_text').map(part => part.text || '').join('\n').trim();
 }
 
+function geminiText(result) {
+  return (result.candidates?.[0]?.content?.parts || [])
+    .map(part => part.text || '').join('\n').trim();
+}
+
+async function askGemini(instructions, input) {
+  const model = clean(process.env.GEMINI_MODEL || 'gemini-3.8-flash', 80);
+  if (!/^[a-zA-Z0-9._-]+$/.test(model)) throw new Error('O modelo Gemini configurado é inválido.');
+  const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+    method: 'POST',
+    headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: instructions }] },
+      contents: input.map(item => ({
+        role: item.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: item.content }],
+      })),
+      generationConfig: { maxOutputTokens: 300 },
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+  const result = await upstream.json().catch(() => ({}));
+  if (!upstream.ok) {
+    console.error('Falha na API Gemini do suporte Titans:', upstream.status, result.error?.status || result.error?.code || 'upstream_error');
+    return { ok: false, text: '' };
+  }
+  return { ok: true, text: geminiText(result) };
+}
+
+async function askOpenAI(instructions, input) {
+  const upstream = await fetch('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || 'gpt-6-luna',
+      instructions,
+      input,
+      max_output_tokens: 300,
+      reasoning: { effort: 'low' },
+      store: false,
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+  const result = await upstream.json().catch(() => ({}));
+  if (!upstream.ok) {
+    console.error('Falha na API OpenAI do suporte Titans:', upstream.status, result.error?.code || 'upstream_error');
+    return { ok: false, text: '' };
+  }
+  return { ok: true, text: outputText(result) };
+}
+
 module.exports = async function handler(req, res) {
   if (req.method === 'GET') {
     return response(res, 200, {
-      enabled: Boolean(process.env.OPENAI_API_KEY),
+      enabled: Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY),
       contactUrl: publicContact(),
     });
   }
   if (req.method !== 'POST') return response(res, 405, { error: 'Método não permitido.' });
   if (!sameSite(req)) return response(res, 403, { error: 'Origem não permitida.' });
-  if (!process.env.OPENAI_API_KEY) {
+  if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
     return response(res, 503, { error: 'A IA ainda não foi ativada pela loja.', contactUrl: publicContact() });
   }
 
@@ -108,25 +159,13 @@ module.exports = async function handler(req, res) {
       ...history,
       { role: 'user', content: `${product ? `Produto selecionado: ${product}.\n` : ''}${question}` },
     ];
-    const upstream = await fetch('https://api.openai.com/v1/responses', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || 'gpt-5.6-luna',
-        instructions,
-        input,
-        max_output_tokens: 300,
-        reasoning: { effort: 'low' },
-        store: false,
-      }),
-      signal: AbortSignal.timeout(20000),
-    });
-    const result = await upstream.json().catch(() => ({}));
-    if (!upstream.ok) {
-      console.error('Falha na API de suporte Titans:', upstream.status, result.error?.code || 'upstream_error');
+    const result = process.env.GEMINI_API_KEY
+      ? await askGemini(instructions, input)
+      : await askOpenAI(instructions, input);
+    if (!result.ok) {
       return response(res, 502, { error: 'A IA está indisponível neste momento.', contactUrl: publicContact() });
     }
-    const text = outputText(result);
+    const text = result.text;
     if (!text) return response(res, 502, { error: 'Não consegui montar uma resposta agora.', contactUrl: publicContact() });
     const needsHuman = text.startsWith('[[HUMANO]]');
     const answer = text.replace(/^\[\[HUMANO\]\]\s*/, '').slice(0, 1200);
