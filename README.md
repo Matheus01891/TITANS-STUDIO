@@ -127,3 +127,14 @@ Chamadas Gemini que retornam erro temporário (429/5xx) ou timeout recebem uma n
 Se a IA não encontrar uma resposta confirmada — por exemplo, compatibilidade ou política ainda não definida — ela identifica que precisa de atendimento e o widget mostra o link `SUPPORT_CONTACT_URL`. Se a chave da IA estiver ausente, aparece uma resposta de configuração e o link humano continua disponível quando configurado. Depois de adicionar as variáveis, faça um novo deploy da Vercel.
 
 O cartão de suporte requer chave válida da API. Confira o preço vigente antes de ativar: a API é cobrada por uso, separadamente do ChatGPT.
+
+
+## Conta do cliente, painel e produtos privados
+
+- `conta.html`: login por e-mail/Discord e histórico de pedidos reais quando existir integração de pagamento.
+- `admin.html`: painel protegido por função de administrador para cadastrar, publicar, destacar, marcar como novo e remover scripts.
+- `supabase/schema.sql`: tabelas e políticas RLS; `SETUP-CONTAS.md`: configuração do Supabase, Discord e Vercel.
+- `api/public-config.js` e `api/products.js`: configuração pública segura e catálogo publicado. `api/download.js` valida sessão e pedido pago antes de entregar link assinado temporário.
+- Os `.lua`/`.zip` do produto ficam em Storage privado, nunca no repositório público.
+- Com Supabase configurado, o checkout exige uma conta e retoma o carrinho após o login. Os pedidos e pagamentos continuam demonstrativos até conectar um provedor e seu webhook.
+- As DMs da prévia Discord agora usam embed TITANS STUDIO com resumo, código individual, aviso de uso único/expiração e botão de acesso.
