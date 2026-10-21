@@ -109,6 +109,8 @@ Na Vercel, em **Settings → Environment Variables**, configure uma das opções
 
 A rota limita cada IP a 18 perguntas por hora e o site a 120 perguntas por dia usando o Upstash Redis que já protege as prévias. Ela guarda no Redis uma chave derivada do IP para aplicar esse limite. O texto da dúvida e o histórico recente são enviados à API de IA para formular a resposta; o widget avisa o cliente para não enviar senhas nem dados de pagamento.
 
+Chamadas Gemini que retornam erro temporário (429/5xx) ou timeout recebem uma nova tentativa curta. A função de suporte pode executar por até 30 segundos na Vercel para completar essa repetição.
+
 Se a IA não encontrar uma resposta confirmada — por exemplo, compatibilidade ou política ainda não definida — ela identifica que precisa de atendimento e o widget mostra o link `SUPPORT_CONTACT_URL`. Se a chave da IA estiver ausente, aparece uma resposta de configuração e o link humano continua disponível quando configurado. Depois de adicionar as variáveis, faça um novo deploy da Vercel.
 
 O cartão de suporte requer chave válida da API. Confira o preço vigente antes de ativar: a API é cobrada por uso, separadamente do ChatGPT.
