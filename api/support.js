@@ -86,7 +86,8 @@ function geminiText(result) {
 async function askGemini(instructions, input) {
   const model = clean(process.env.GEMINI_MODEL || 'gemini-3.8-flash', 80);
   if (!/^[a-zA-Z0-9._-]+$/.test(model)) throw new Error('O modelo Gemini configurado é inválido.');
-  const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const options = {
     method: 'POST',
     headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -97,14 +98,34 @@ async function askGemini(instructions, input) {
       })),
       generationConfig: { maxOutputTokens: 300 },
     }),
-    signal: AbortSignal.timeout(20000),
-  });
-  const result = await upstream.json().catch(() => ({}));
-  if (!upstream.ok) {
-    console.error('Falha na API Gemini do suporte Titans:', upstream.status, result.error?.status || result.error?.code || 'upstream_error');
-    return { ok: false, text: '' };
+  };
+
+  // Gemini 503/429 and network timeouts can be transient. Make one short retry.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const upstream = await fetch(url, { ...options, signal: AbortSignal.timeout(8000) });
+      const result = await upstream.json().catch(() => ({}));
+      if (upstream.ok) return { ok: true, text: geminiText(result) };
+
+      const retryable = upstream.status === 408 || upstream.status === 429 || upstream.status >= 500;
+      if (retryable && attempt === 0) {
+        console.warn('Gemini temporariamente indisponível; tentando novamente:', upstream.status);
+        await new Promise(resolve => setTimeout(resolve, 700));
+        continue;
+      }
+      console.error('Falha na API Gemini do suporte Titans:', upstream.status, result.error?.status || result.error?.code || 'upstream_error');
+      return { ok: false, text: '' };
+    } catch (error) {
+      if (attempt === 0) {
+        console.warn('Timeout/rede ao chamar Gemini; tentando novamente:', error.name || 'network_error');
+        await new Promise(resolve => setTimeout(resolve, 700));
+        continue;
+      }
+      console.error('Falha ao conectar à API Gemini do suporte Titans:', error.name || 'network_error');
+      return { ok: false, text: '' };
+    }
   }
-  return { ok: true, text: geminiText(result) };
+  return { ok: false, text: '' };
 }
 
 async function askOpenAI(instructions, input) {
