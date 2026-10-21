@@ -7,7 +7,7 @@ Esta integração acrescenta login de cliente por e-mail/Discord, área de pedid
 1. Crie um projeto em [supabase.com/dashboard](https://supabase.com/dashboard).
 2. Em **Project Settings → API**, copie o **Project URL** e a chave **anon/public** (pode aparecer como publishable key). Nunca copie a `service_role` para a loja ou para o GitHub.
 3. No **SQL Editor**, abra `supabase/schema.sql` destes arquivos, cole o conteúdo completo e execute.
-4. Em **Storage**, crie um bucket chamado `titans-deliveries`, defina como **Private**, limite o tamanho por arquivo a 25 MB e permita `.zip` e `.lua`. As políticas de acesso do bucket estão no SQL.
+4. Em **Storage**, crie um bucket chamado `titans-deliveries` e defina como **Private**. No plano grátis, o limite global máximo por arquivo é 50 MB. Em **Allowed MIME types**, deixe vazio para não restringir por tipo (o painel valida a extensão) ou permita `application/zip`, `application/vnd.rar`, `application/x-rar-compressed`, `application/x-7z-compressed` e `text/plain`. As políticas de acesso do bucket estão no SQL.
 
 ## 2. Ativar login por e-mail e Discord
 
@@ -45,7 +45,7 @@ values ('COLE-AQUI-O-UUID-DA-SUA-CONTA');
 
 ## 5. Adicionar o primeiro script
 
-No painel, informe nome, preço base em reais, categoria, frameworks compatíveis, descrição e selecione o `.lua` ou `.zip`. Marque **Destacar na vitrine**, **Mostrar selo “Novo”** e/ou **Publicar no catálogo**. O upload fica no bucket privado e o catálogo recebe apenas os dados comerciais. O painel lista seus produtos, permite publicar/retirar do ar e excluir.
+No painel, informe nome, preço base em reais, categoria, frameworks compatíveis, descrição e selecione `.lua`, `.zip`, `.rar` ou `.7z` (até 50 MB no plano grátis). O arquivo fica no bucket privado e o catálogo recebe apenas os dados comerciais. Marque **Destacar na vitrine**, **Mostrar selo “Novo”** e/ou **Publicar no catálogo**. O painel lista seus produtos, permite publicar/retirar do ar e excluir.
 
 **Não envie o script real para o repositório GitHub.** O repositório atual é público. O painel guarda o arquivo final no Storage privado; as opções de download para compradores só podem ser liberadas por uma função de servidor após confirmar o pagamento.
 
