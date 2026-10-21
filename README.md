@@ -9,6 +9,7 @@
 - `api/discord-callback.js`: confirma a conta Discord, consome o link e registra a abertura.
 - `api/preview-access.js`: valida a sessão temporária da prévia.
 - `titans-studio-logo.png`: logo utilizada na loja e na demonstração.
+- `assets/formas-de-pagamento-titans.webp`: arte enviada pelo dono da loja com os métodos previstos de pagamento.
 
 ## Como funciona a entrega
 
@@ -62,3 +63,21 @@ Depois de alterar as variáveis, faça um novo deploy da Vercel. Nunca coloque w
 - O checkout continua demonstrativo; nenhum pagamento é cobrado.
 - Os produtos e valores do catálogo ainda são exemplos.
 - A prévia visual temporária está identificada como demonstração; substitua-a pela demonstração real antes de vender o script como funcional.
+
+
+## Melhorias recentes
+
+- A loja exibe a arte de formas de pagamento e explica que Pix/cartões são apenas os métodos planejados até conectar um provedor.
+- A sacola permanece salva no navegador do cliente.
+- No checkout há uma visualização da confirmação pós-pagamento, identificada como simulação. Ela não cobra, não marca pedido como pago e não envia produto.
+- O botão “Suporte Titans” oferece respostas guiadas locais para dúvidas comuns. É um assistente inicial por regras, não uma IA generativa, e não encaminha mensagens a um atendente. Uma IA real precisa de uma API de modelo e chave guardada em variável de ambiente; um contato humano exige o convite/link do Discord de suporte.
+- O modal, controles e widget de suporte foram ajustados para telas pequenas.
+
+## O que falta para vender e entregar de verdade
+
+1. Escolher e conectar um provedor de pagamento em modo sandbox.
+2. Criar uma rota de webhook no servidor e validar a assinatura enviada pelo provedor antes de aprovar pedidos. Nunca aprovar compra a partir de um botão no navegador.
+3. Guardar o pedido e enviar o arquivo real somente depois da confirmação do webhook, com proteção contra notificações repetidas.
+4. Substituir produtos, preços e prévia demonstrativos pelo material real.
+
+O teste visual pode ser feito adicionando um produto, abrindo a sacola, clicando em “Revisar pedido”, “Comprar agora” e “Ver como ficará após pagamento (simulação)”. O resultado informa expressamente que nada foi cobrado nem entregue.
