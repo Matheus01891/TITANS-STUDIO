@@ -62,7 +62,7 @@ async function sendOwnerNotice(text) {
   if (!response.ok) throw new Error('Não foi possível avisar o canal interno da loja.');
 }
 
-async function sendCustomerDiscord(userId, message) {
+async function sendCustomerDiscord(userId, payload) {
   const token = process.env.DISCORD_BOT_TOKEN;
   if (!token) throw new Error('O envio automático pelo Discord ainda precisa conectar o bot Titans Studio.');
   if (!/^\d{17,20}$/.test(userId)) throw new Error('Para receber pelo Discord, informe o ID numérico do usuário, não o nome ou convite.');
@@ -96,7 +96,7 @@ async function sendCustomerDiscord(userId, message) {
   }
 
   const messageResponse = await fetch(`https://discord.com/api/v10/channels/${dm.id}/messages`, {
-    method: 'POST', headers, body: JSON.stringify({ content: message.slice(0, 1900), allowed_mentions: { parse: [] } }),
+    method: 'POST', headers, body: JSON.stringify({ ...payload, allowed_mentions: { parse: [] } }),
   });
   if (!messageResponse.ok) {
     const failure = await messageResponse.json().catch(() => ({}));
@@ -154,14 +154,27 @@ module.exports = async function handler(req, res) {
   } catch (error) {
     return res.status(503).json({ error: error.message || 'Não foi possível preparar a prévia protegida.' });
   }
-  const discordMessage = [
-    `Olá, ${name}! A Titans Studio preparou uma prévia demonstrativa do seu pedido.`,
-    `Identificador da prévia: #${access.orderCode}`,
-    '', productList,
-    `Total demonstrativo: ${formatMoney(total)}`,
-    '', `Acessar prévia: ${previewUrl}`,
-    '', 'Esta página é uma demonstração visual temporária da loja.',
-  ].join('\n');
+  const discordMessage = {
+    content: `Olá, ${name}! Sua prévia da TITANS STUDIO está pronta. Confira os detalhes abaixo.`,
+    embeds: [{
+      title: '⚡ Prévia individual preparada',
+      description: 'Este acesso foi criado para revisar uma demonstração visual dos itens do seu pedido.',
+      color: 0xE52330,
+      fields: [
+        { name: '🧾 Identificador', value: `\`#${access.orderCode}\``, inline: true },
+        { name: '📦 Itens', value: productList.slice(0, 1024), inline: false },
+        { name: '💳 Total demonstrativo', value: `**${formatMoney(total)}**`, inline: true },
+        { name: '🔐 Acesso protegido', value: 'Link individual, associado à conta Discord informada e válido para um único resgate. Depois de abrir, a sessão da prévia dura até 20 minutos.', inline: false },
+        { name: 'ℹ️ Sobre esta prévia', value: 'Esta página é apenas uma demonstração visual temporária. Não contém o arquivo final do script e não representa uma compra ou cobrança.', inline: false },
+      ],
+      footer: { text: 'TITANS STUDIO • Scripts e soluções para FiveM' },
+      timestamp: new Date().toISOString(),
+    }],
+    components: [{
+      type: 1,
+      components: [{ type: 2, style: 5, label: 'Abrir minha prévia', url: previewUrl }],
+    }],
+  };
 
   try {
     if (channel === 'discord') await sendCustomerDiscord(contact, discordMessage);
@@ -173,6 +186,7 @@ module.exports = async function handler(req, res) {
       channelLabel,
       '', 'Produtos:', productList,
       `Total demonstrativo: ${formatMoney(total)}`,
+      `Código da prévia: #${access.orderCode}`,
     ].join('\n');
     try { await sendOwnerNotice(notice); }
     catch (noticeError) { console.error('A prévia foi entregue, mas o aviso interno falhou:', noticeError.message); }
