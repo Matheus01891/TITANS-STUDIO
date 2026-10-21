@@ -1,13 +1,10 @@
 const MAX_BODY_BYTES = 12_000;
+const PREVIEW_CODE_TTL = 60 * 60;
+const PREVIEW_SESSION_TTL = 20 * 60;
+const crypto = require('node:crypto');
 
 function clean(value, max = 500) {
   return String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max);
-}
-
-function escapeHtml(value) {
-  return value.replace(/[&<>"']/g, (char) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  })[char]);
 }
 
 function formatMoney(value) {
@@ -18,6 +15,40 @@ function getPreviewUrl(req) {
   if (process.env.PREVIEW_URL) return process.env.PREVIEW_URL;
   const host = req.headers?.['x-forwarded-host'] || req.headers?.host;
   return host ? `https://${host}/preview.html` : 'https://titans-studio.vercel.app/preview.html';
+}
+
+function redisConfig() {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) throw new Error('A proteção da prévia ainda não foi configurada. Avise a TITANS STUDIO.');
+  return { url: url.replace(/\/+$/, ''), token };
+}
+
+async function redisCommand(command) {
+  const { url, token } = redisConfig();
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(command),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || result.error) throw new Error('O armazenamento temporário da prévia está indisponível.');
+  return result.result;
+}
+
+function getLoginUrl(req, code) {
+  const parsed = new URL('/api/preview-login', getPreviewUrl(req));
+  parsed.searchParams.set('code', code);
+  return parsed.toString();
+}
+
+async function createPreviewAccess({ name, channel, contact, items, total }) {
+  const code = crypto.randomBytes(32).toString('base64url');
+  const orderCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+  const payload = JSON.stringify({ name, channel, contact, items, total, orderCode, issuedAt: Date.now() });
+  const stored = await redisCommand(['SET', `ts:preview:code:${code}`, payload, 'EX', PREVIEW_CODE_TTL, 'NX']);
+  if (stored !== 'OK') throw new Error('Não foi possível gerar o código individual da prévia. Tente novamente.');
+  return { code, orderCode };
 }
 
 async function sendOwnerNotice(text) {
@@ -33,7 +64,7 @@ async function sendOwnerNotice(text) {
 
 async function sendCustomerDiscord(userId, message) {
   const token = process.env.DISCORD_BOT_TOKEN;
-  if (!token) throw new Error('O envio automático pelo Discord ainda precisa conectar o bot Titans Studio. Escolha e-mail por enquanto.');
+  if (!token) throw new Error('O envio automático pelo Discord ainda precisa conectar o bot Titans Studio.');
   if (!/^\d{17,20}$/.test(userId)) throw new Error('Para receber pelo Discord, informe o ID numérico do usuário, não o nome ou convite.');
 
   const headers = {
@@ -55,22 +86,6 @@ async function sendCustomerDiscord(userId, message) {
   if (!messageResponse.ok) throw new Error('Não foi possível entregar a prévia por DM no Discord. Confira o bot e as permissões.');
 }
 
-async function sendCustomerEmail(email, subject, text, html) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM;
-  if (!apiKey || !from) throw new Error('O envio automático por e-mail ainda precisa ser configurado. Escolha Discord por enquanto.');
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to: [email], subject, text, html }),
-  });
-  if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    console.error('Resend recusou o e-mail:', detail.slice(0, 500));
-    throw new Error('Não foi possível enviar o e-mail. Confira a chave, o remetente verificado e o endereço informado.');
-  }
-}
-
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') {
@@ -88,7 +103,7 @@ module.exports = async function handler(req, res) {
   }
 
   const name = clean(data.name, 100);
-  const channel = data.channel === 'discord' ? 'discord' : data.channel === 'email' ? 'email' : '';
+  const channel = data.channel === 'discord' ? 'discord' : '';
   const contact = clean(data.contact, 200);
   const items = Array.isArray(data.items) ? data.items.slice(0, 30).map((item) => ({
     name: clean(item?.name, 100),
@@ -96,35 +111,29 @@ module.exports = async function handler(req, res) {
     price: Math.max(0, Math.min(1_000_000, Number(item?.price) || 0)),
   })).filter((item) => item.name) : [];
 
-  if (!name || !channel || !contact || !items.length) return res.status(400).json({ error: 'Preencha seu nome, contato e ao menos um produto.' });
-  if (channel === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) return res.status(400).json({ error: 'Informe um e-mail válido.' });
+  if (!name || !channel || !contact || !items.length) return res.status(400).json({ error: 'Preencha seu nome, ID do Discord e ao menos um produto.' });
   if (channel === 'discord' && !/^\d{17,20}$/.test(contact)) return res.status(400).json({ error: 'Informe o ID numérico do Discord para receber a DM.' });
 
-  const previewUrl = getPreviewUrl(req);
   const itemLines = items.map((item) => `${item.quantity}x ${item.name} — ${formatMoney(item.price * item.quantity)}`);
   const total = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
   const productList = itemLines.map((line) => `• ${line}`).join('\n');
-  const subject = 'Sua prévia Titans Studio chegou';
-  const text = [
-    `Olá, ${name}!`,
-    'A Titans Studio preparou uma prévia demonstrativa do seu pedido.',
-    '', 'Itens:', productList,
-    `Total demonstrativo: ${formatMoney(total)}`,
-    '', `Acessar prévia: ${previewUrl}`,
-    '', 'Esta página é uma demonstração visual temporária da loja.',
-  ].join('\n');
-  const html = [
-    '<div style="font-family:Arial,sans-serif;background:#101113;color:#f5f5f5;padding:28px;border-radius:14px;max-width:620px;margin:auto">',
-    '<p style="color:#fa3544;letter-spacing:2px;font-weight:bold">TITANS STUDIO</p>',
-    `<h1 style="font-size:26px">Olá, ${escapeHtml(name)}!</h1>`,
-    '<p>Sua prévia demonstrativa está pronta. Confira os itens selecionados e abra a demonstração pelo botão abaixo.</p>',
-    `<ul>${items.map((item) => `<li>${item.quantity}x ${escapeHtml(item.name)} — ${escapeHtml(formatMoney(item.price * item.quantity))}</li>`).join('')}</ul>`,
-    `<p><strong>Total demonstrativo:</strong> ${escapeHtml(formatMoney(total))}</p>`,
-    `<p style="margin:28px 0"><a href="${escapeHtml(previewUrl)}" style="background:#ed2938;color:white;text-decoration:none;padding:14px 20px;border-radius:8px;font-weight:bold">ABRIR MINHA PRÉVIA</a></p>`,
-    '<p style="color:#a7a7a7;font-size:12px">Esta é uma demonstração visual temporária da Titans Studio.</p></div>',
-  ].join('');
+  let access;
+  let previewUrl;
+  try {
+    access = await createPreviewAccess({
+      name,
+      channel,
+      contact,
+      items: items.map(({ name: itemName, quantity, price }) => ({ name: itemName, quantity, price })),
+      total,
+    });
+    previewUrl = getLoginUrl(req, access.code);
+  } catch (error) {
+    return res.status(503).json({ error: error.message || 'Não foi possível preparar a prévia protegida.' });
+  }
   const discordMessage = [
     `Olá, ${name}! A Titans Studio preparou uma prévia demonstrativa do seu pedido.`,
+    `Identificador da prévia: #${access.orderCode}`,
     '', productList,
     `Total demonstrativo: ${formatMoney(total)}`,
     '', `Acessar prévia: ${previewUrl}`,
@@ -132,10 +141,9 @@ module.exports = async function handler(req, res) {
   ].join('\n');
 
   try {
-    if (channel === 'email') await sendCustomerEmail(contact, subject, text, html);
     if (channel === 'discord') await sendCustomerDiscord(contact, discordMessage);
 
-    const channelLabel = channel === 'email' ? `E-mail do cliente: ${contact}` : `Discord ID do cliente: ${contact}`;
+    const channelLabel = `Discord ID do cliente: ${contact}`;
     const notice = [
       'Prévia Titans Studio entregue ao cliente',
       `Nome: ${name}`,
@@ -147,6 +155,9 @@ module.exports = async function handler(req, res) {
     catch (noticeError) { console.error('A prévia foi entregue, mas o aviso interno falhou:', noticeError.message); }
     return res.status(200).json({ ok: true, channel, previewUrl });
   } catch (error) {
+    if (access?.code) {
+      try { await redisCommand(['DEL', `ts:preview:code:${access.code}`]); } catch (cleanupError) { console.error('Não foi possível invalidar o código da prévia:', cleanupError.message); }
+    }
     console.error('Falha na entrega da prévia:', error.message);
     const failedNotice = `Falha ao entregar uma prévia Titans Studio.\nNome: ${name}\nCanal: ${channel}\nContato informado: ${contact}\nMotivo: ${clean(error.message, 300)}`;
     try { await sendOwnerNotice(failedNotice); }
