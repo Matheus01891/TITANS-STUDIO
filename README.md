@@ -5,6 +5,7 @@
 - `index.html`: loja, carrinho e formulário de solicitação da prévia.
 - `preview.html`: página de demonstração protegida por login do Discord e marca d'água por pedido.
 - `api/preview.js`: gera o código individual de uso único e envia o link por DM.
+- `api/support.js`: atende o widget com IA pelo servidor e revela o contato humano configurado quando necessário.
 - `api/preview-login.js`: valida o link e inicia o login oficial do Discord.
 - `api/discord-callback.js`: confirma a conta Discord, consome o link e registra a abertura.
 - `api/preview-access.js`: valida a sessão temporária da prévia.
@@ -93,3 +94,18 @@ O teste visual pode ser feito adicionando um produto, abrindo a sacola, clicando
 - O formulário de checkout pede confirmação do framework/requisitos para demonstrar esse passo; ainda não existe integração de pagamento.
 
 As regras de licença, suporte, atualizações, reembolso e compatibilidade estão como textos de orientação. Substitua pelos termos reais da Titans Studio antes de publicar vendas.
+
+
+## Ativar a IA de suporte e o atendente
+
+Na Vercel, em **Settings → Environment Variables**, configure:
+
+- `OPENAI_API_KEY` — chave secreta da API, marcada como Secret. A chave fica apenas no servidor e não deve ser colocada no HTML ou no GitHub. A IA usa a Responses API e o modelo padrão `gpt-5.6-luna`; o uso da API pode gerar cobrança por tokens e é separado da assinatura do ChatGPT.
+- `SUPPORT_CONTACT_URL` — link de convite/canal do Discord ou endereço `mailto:` para atendimento humano. Use um link de atendimento que seus clientes possam abrir; não use `DISCORD_WEBHOOK_URL` nem token do bot.
+- `OPENAI_MODEL` — opcional; por padrão usa `gpt-5.6-luna`.
+
+A rota limita cada IP a 18 perguntas por hora e o site a 120 perguntas por dia usando o Upstash Redis que já protege as prévias. Ela guarda no Redis uma chave derivada do IP para aplicar esse limite. O texto da dúvida e o histórico recente são enviados à API de IA para formular a resposta; o widget avisa o cliente para não enviar senhas nem dados de pagamento.
+
+Se a IA não encontrar uma resposta confirmada — por exemplo, compatibilidade ou política ainda não definida — ela identifica que precisa de atendimento e o widget mostra o link `SUPPORT_CONTACT_URL`. Se a chave da IA estiver ausente, aparece uma resposta de configuração e o link humano continua disponível quando configurado. Depois de adicionar as variáveis, faça um novo deploy da Vercel.
+
+O cartão de suporte requer chave válida da API. Confira o preço vigente antes de ativar: a API é cobrada por uso, separadamente do ChatGPT.
