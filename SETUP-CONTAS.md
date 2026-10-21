@@ -25,10 +25,10 @@ Em **Vercel → projeto → Settings → Environment Variables**, adicione estas
 | Nome | Valor | É segredo? |
 |---|---|---|
 | `SUPABASE_URL` | Project URL do Supabase | Não |
-| `SUPABASE_ANON_KEY` | chave anon/public (ou publishable) do projeto | Não |
-| `SUPABASE_SERVICE_ROLE_KEY` | chave service_role/secret do projeto, usada só pela API privada de download | **Sim — segredo** |
+| `SUPABASE_ANON_KEY` | chave **Publishable** (`sb_publishable_...`); o nome da variável é mantido pelo código | Não |
+| `SUPABASE_SERVICE_ROLE_KEY` | chave **Secret** (`sb_secret_...`); usada só pela API privada de download e mantida apenas na Vercel | **Sim — segredo** |
 
-Salve e faça um novo deploy. A chave anon é enviada ao navegador; a segurança vem das políticas RLS no arquivo SQL. A `service_role` fica apenas como variável Secret na Vercel para `/api/download`; nunca a coloque em `index.html`, `conta.html`, `admin.html` nem no GitHub. Mantenha todas as variáveis atuais da prévia e do suporte como estão.
+Salve e faça um novo deploy. A chave Publishable é enviada ao navegador; a segurança vem das políticas RLS no arquivo SQL. A chave Secret fica apenas na Vercel para `/api/download`; nunca a coloque em `index.html`, `conta.html`, `admin.html` nem no GitHub. Mantenha todas as variáveis atuais da prévia e do suporte como estão.
 
 ## 4. Autorizar sua conta como dona da loja
 
