@@ -77,13 +77,36 @@ async function sendCustomerDiscord(userId, message) {
   });
   const dm = await dmResponse.json().catch(() => ({}));
   if (!dmResponse.ok || !dm.id) {
-    throw new Error('O Discord não permitiu abrir uma DM. Confira o ID e as configurações de mensagens privadas do usuário.');
+    const discordCode = Number(dm.code) || 0;
+    console.error('Discord recusou a criação da DM:', {
+      httpStatus: dmResponse.status,
+      discordCode,
+      message: clean(dm.message || 'Sem descrição retornada pela API.', 240),
+    });
+    if (dmResponse.status === 401) {
+      throw new Error('O token do bot configurado na Vercel foi recusado. Confira se DISCORD_BOT_TOKEN é do bot Titans Studio e atualize o deploy.');
+    }
+    if (discordCode === 50007) {
+      throw new Error('O Discord recusou a DM (código 50007). As permissões estão ligadas; confira se o ID é da conta correta, se o bot está no mesmo servidor e se a conta não bloqueou o bot.');
+    }
+    if (discordCode === 10013 || dmResponse.status === 404) {
+      throw new Error('O Discord não encontrou esse usuário. Confira o ID numérico copiado do perfil da conta que receberá a prévia.');
+    }
+    throw new Error(`O Discord recusou a DM (HTTP ${dmResponse.status}, código ${discordCode || 'não informado'}). Confira o token do bot, o ID e se os dois estão no mesmo servidor.`);
   }
 
   const messageResponse = await fetch(`https://discord.com/api/v10/channels/${dm.id}/messages`, {
     method: 'POST', headers, body: JSON.stringify({ content: message.slice(0, 1900), allowed_mentions: { parse: [] } }),
   });
-  if (!messageResponse.ok) throw new Error('Não foi possível entregar a prévia por DM no Discord. Confira o bot e as permissões.');
+  if (!messageResponse.ok) {
+    const failure = await messageResponse.json().catch(() => ({}));
+    console.error('Discord recusou o envio da mensagem:', {
+      httpStatus: messageResponse.status,
+      discordCode: Number(failure.code) || 0,
+      message: clean(failure.message || 'Sem descrição retornada pela API.', 240),
+    });
+    throw new Error(`A DM abriu, mas o Discord recusou a mensagem (HTTP ${messageResponse.status}, código ${Number(failure.code) || 'não informado'}). Confira os registros do bot.`);
+  }
 }
 
 module.exports = async function handler(req, res) {
