@@ -27,6 +27,61 @@ $$;
 revoke all on function public.is_store_admin() from public;
 grant execute on function public.is_store_admin() to anon, authenticated;
 
+-- Append-only administrative audit trail for product changes.
+create table if not exists public.store_audit_logs (
+  id bigint generated always as identity primary key,
+  actor_id uuid references auth.users(id) on delete set null,
+  actor_email text,
+  action text not null,
+  entity_type text not null,
+  entity_id uuid,
+  details jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+alter table public.store_audit_logs enable row level security;
+drop policy if exists "Admins can read store audit logs" on public.store_audit_logs;
+create policy "Admins can read store audit logs" on public.store_audit_logs
+  for select to authenticated using (public.is_store_admin());
+grant select on public.store_audit_logs to authenticated;
+
+create or replace function public.log_store_product_audit()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  event_action text;
+  event_id uuid;
+  event_details jsonb;
+begin
+  if tg_op = 'INSERT' then
+    event_action := 'product_created';
+    event_id := new.id;
+    event_details := jsonb_build_object('name', new.name, 'slug', new.slug, 'published', new.published);
+  elsif tg_op = 'DELETE' then
+    event_action := 'product_deleted';
+    event_id := old.id;
+    event_details := jsonb_build_object('name', old.name, 'slug', old.slug, 'published', old.published);
+  else
+    event_id := new.id;
+    if old.published is distinct from new.published then
+      event_action := case when new.published then 'product_published' else 'product_unpublished' end;
+    else
+      event_action := 'product_updated';
+    end if;
+    event_details := jsonb_build_object('name', new.name, 'slug', new.slug, 'published', new.published);
+  end if;
+
+  insert into public.store_audit_logs (actor_id, actor_email, action, entity_type, entity_id, details)
+  values ((select auth.uid()), (select auth.jwt() ->> 'email'), event_action, 'product', event_id, event_details);
+
+  if tg_op = 'DELETE' then return old; end if;
+  return new;
+end;
+$$;
+revoke all on function public.log_store_product_audit() from public, anon, authenticated;
+
 create table if not exists public.products (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique,
@@ -51,6 +106,10 @@ create policy "Published products are visible" on public.products
 drop policy if exists "Admins manage products" on public.products;
 create policy "Admins manage products" on public.products
   for all to authenticated using (public.is_store_admin()) with check (public.is_store_admin());
+drop trigger if exists store_products_audit on public.products;
+create trigger store_products_audit
+  after insert or update or delete on public.products
+  for each row execute function public.log_store_product_audit();
 
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
