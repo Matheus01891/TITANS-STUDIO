@@ -11,9 +11,10 @@ module.exports = async function handler(req, res) {
   try {
     const endpoint = new URL('/rest/v1/products', url);
     endpoint.search = new URLSearchParams({
-      select: 'id,slug,name,category,description,price_brl,frameworks,is_featured,is_new,image_url',
+      select: 'id,slug,name,category,description,price_brl,frameworks,is_featured,is_new,image_url,current_version,product_releases(version,notes,created_at)',
       published: 'eq.true',
       order: 'is_featured.desc,created_at.desc',
+      'product_releases.order': 'created_at.desc',
     }).toString();
     const response = await fetch(endpoint, {
       // Supabase publishable keys are API keys, not JWT bearer tokens.

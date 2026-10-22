@@ -172,7 +172,7 @@ module.exports = async function handler(req, res) {
   })).filter(item => item.content) : [];
   const product = clean(body.product, 100);
   const requestedLanguage = clean(body.language, 10);
-  const responseLanguage = requestedLanguage === 'en' ? 'inglês' : requestedLanguage === 'pt-PT' ? 'português de Portugal' : 'português brasileiro';
+  const responseLanguage = requestedLanguage === 'en' ? 'inglês' : requestedLanguage === 'de' ? 'alemão' : requestedLanguage === 'pt-PT' ? 'português de Portugal' : 'português brasileiro';
 
   try {
     if (!await rateLimit(req)) return response(res, 429, { error: 'Você chegou ao limite temporário de perguntas. Tente novamente daqui a pouco.', contactUrl: publicContact() });
