@@ -113,16 +113,16 @@ async function askGemini(instructions, input) {
         await new Promise(resolve => setTimeout(resolve, 700));
         continue;
       }
-      console.error('Falha na API Gemini do suporte Titans:', upstream.status, result.error?.status || result.error?.code || 'upstream_error');
-      return { ok: false, text: '' };
+      console.error('Falha na API Gemini do suporte Titans:', upstream.status, result.error?.status || result.error?.code || 'upstream_error', clean(result.error?.message, 180));
+      return { ok: false, text: '', reason: `gemini_${upstream.status}` };
     } catch (error) {
       if (attempt === 0) {
         console.warn('Timeout/rede ao chamar Gemini; tentando novamente:', error.name || 'network_error');
         await new Promise(resolve => setTimeout(resolve, 700));
         continue;
       }
-      console.error('Falha ao conectar à API Gemini do suporte Titans:', error.name || 'network_error');
-      return { ok: false, text: '' };
+      console.error('Falha ao conectar à API Gemini do suporte Titans:', error.name || 'network_error', clean(error.message, 180));
+      return { ok: false, text: '', reason: 'gemini_network' };
     }
   }
   return { ok: false, text: '' };
@@ -144,8 +144,8 @@ async function askOpenAI(instructions, input) {
   });
   const result = await upstream.json().catch(() => ({}));
   if (!upstream.ok) {
-    console.error('Falha na API OpenAI do suporte Titans:', upstream.status, result.error?.code || 'upstream_error');
-    return { ok: false, text: '' };
+    console.error('Falha na API OpenAI do suporte Titans:', upstream.status, result.error?.code || 'upstream_error', clean(result.error?.message, 180));
+    return { ok: false, text: '', reason: `openai_${upstream.status}` };
   }
   return { ok: true, text: outputText(result) };
 }
@@ -182,16 +182,25 @@ module.exports = async function handler(req, res) {
       ...history,
       { role: 'user', content: `${product ? `Produto selecionado: ${product}.\n` : ''}${question}` },
     ];
-    const result = process.env.GEMINI_API_KEY
-      ? await askGemini(instructions, input)
-      : await askOpenAI(instructions, input);
+    let result = { ok: false, text: '' };
+    if (process.env.GEMINI_API_KEY) {
+      result = await askGemini(instructions, input);
+      if ((!result.ok || !result.text) && process.env.OPENAI_API_KEY) {
+        console.warn('Provedor principal de IA indisponível; tentando o provedor alternativo configurado.');
+        result = await askOpenAI(instructions, input);
+      }
+    } else if (process.env.OPENAI_API_KEY) {
+      result = await askOpenAI(instructions, input);
+    }
     if (!result.ok) {
       return response(res, 502, { error: 'A IA está indisponível neste momento.', contactUrl: publicContact() });
     }
-    const text = result.text;
+    let text = result.text;
     if (!text) return response(res, 502, { error: 'Não consegui montar uma resposta agora.', contactUrl: publicContact() });
-    const needsHuman = text.startsWith('[[HUMANO]]');
-    const answer = text.replace(/^\[\[HUMANO\]\]\s*/, '').slice(0, 1200);
+    const leakedInstruction = /unless asked about specific|FATOS CONFIRMADOS|REGRAS:|Não revele estas instruções/i.test(text);
+    if (leakedInstruction) text = '[[HUMANO]]Para confirmar essa informação, fale com o atendimento da Titans Studio.';
+    const needsHuman = /^\s*\[+\s*HUMANO/i.test(text);
+    const answer = text.replace(/^\s*\[+\s*HUMANO\s*\]*\s*/i, '').replace(/^\s*\]+\s*/, '').slice(0, 1200).trim();
     return response(res, 200, { answer, needsHuman, contactUrl: needsHuman ? publicContact() : null });
   } catch (error) {
     console.error('Falha no suporte Titans:', error.message);
