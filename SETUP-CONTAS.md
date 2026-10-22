@@ -7,7 +7,7 @@ Esta integração acrescenta login de cliente por e-mail/Discord, área de pedid
 1. Crie um projeto em [supabase.com/dashboard](https://supabase.com/dashboard).
 2. Em **Project Settings → API**, copie o **Project URL** e a chave **anon/public** (pode aparecer como publishable key). Nunca copie a `service_role` para a loja ou para o GitHub.
 3. No **SQL Editor**, abra `supabase/schema.sql` destes arquivos, cole o conteúdo completo e execute.
-4. Em **Storage**, crie um bucket chamado `titans-deliveries` e defina como **Private**. No plano grátis, o limite global máximo por arquivo é 50 MB. Em **Allowed MIME types**, deixe vazio para não restringir por tipo (o painel valida a extensão) ou permita `application/zip`, `application/vnd.rar`, `application/x-rar-compressed`, `application/x-7z-compressed` e `text/plain`. As políticas de acesso do bucket estão no SQL.
+4. Em **Storage**, crie um bucket chamado `titans-deliveries` e defina como **Private**. No plano grátis, o limite global máximo por arquivo é 50 MB. Em **Allowed MIME types**, deixe vazio para não restringir por tipo (o painel valida a extensão) ou permita `application/zip`, `application/x-zip-compressed`, `application/vnd.rar`, `application/x-rar-compressed`, `application/x-7z-compressed`, `application/octet-stream` e `text/plain`. As políticas de acesso do bucket estão no SQL.
 
 ## 2. Ativar login por e-mail e Discord
 
@@ -42,6 +42,8 @@ values ('COLE-AQUI-O-UUID-DA-SUA-CONTA');
 ```
 
 4. Saia e entre novamente, depois abra `https://titans-studio.vercel.app/admin.html`. Clientes comuns não ganham acesso ao painel só por terem conta.
+
+O painel registra automaticamente inclusão, edição, publicação, retirada do ar e exclusão de produtos na tabela `public.store_audit_logs`. Quando receber uma versão que inclua essa auditoria, execute novamente o conteúdo completo de `supabase/schema.sql` no SQL Editor para criar a tabela, as políticas de leitura e o gatilho de registro. O script pode ser executado de novo com segurança.
 
 ## 5. Adicionar o primeiro script
 

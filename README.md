@@ -132,7 +132,7 @@ O cartão de suporte requer chave válida da API. Confira o preço vigente antes
 ## Conta do cliente, painel e produtos privados
 
 - `conta.html`: login por e-mail/Discord e histórico de pedidos reais quando existir integração de pagamento.
-- `admin.html`: painel protegido por função de administrador para cadastrar, publicar, destacar, marcar como novo e remover scripts.
+- `admin.html`: painel protegido por função de administrador para cadastrar, publicar, destacar, marcar como novo e remover scripts, com registro de auditoria dos eventos de produto.
 - `supabase/schema.sql`: tabelas e políticas RLS; `SETUP-CONTAS.md`: configuração do Supabase, Discord e Vercel.
 - `api/public-config.js` e `api/products.js`: configuração pública segura e catálogo publicado. `api/download.js` valida sessão e pedido pago antes de entregar link assinado temporário.
 - Os `.lua`/`.zip` do produto ficam em Storage privado, nunca no repositório público.
