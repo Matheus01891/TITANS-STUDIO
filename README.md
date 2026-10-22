@@ -132,8 +132,11 @@ O cartão de suporte requer chave válida da API. Confira o preço vigente antes
 ## Conta do cliente, painel e produtos privados
 
 - `conta.html`: login por e-mail/Discord e histórico de pedidos reais quando existir integração de pagamento.
-- `admin.html`: painel protegido por função de administrador para cadastrar, publicar, destacar, marcar como novo e remover scripts, com registro de auditoria dos eventos de produto.
-- `supabase/schema.sql`: tabelas e políticas RLS; `SETUP-CONTAS.md`: configuração do Supabase, Discord e Vercel.
+- `admin.html`: painel com funções separadas de dono, editor e suporte; permite cadastrar scripts, registrar versões/changelogs e consultar auditoria. Somente o dono atribui perfis.
+- `supabase/schema.sql`: tabelas, funções por perfil, grants e políticas RLS. Execute o arquivo completo no SQL Editor antes de usar as novas funções.
+- `supabase/email-templates/`: modelos formais e localizados da TITANS STUDIO para confirmação de cadastro e login por link. Os modelos precisam ser colados no painel Supabase; SMTP personalizado é necessário para trocar o remetente “Supabase Auth”.
+- A interface de conta e painel segue o idioma guardado no site: português do Brasil, português de Portugal, inglês ou alemão. No cadastro, o idioma é enviado ao Supabase como `user_metadata.language` para o modelo de e-mail selecionar o texto adequado.
+- `SETUP-CONTAS.md`: instruções para configurar perfis, changelog, modelos de e-mail, Supabase, Discord e Vercel.
 - `api/public-config.js` e `api/products.js`: configuração pública segura e catálogo publicado. `api/download.js` valida sessão e pedido pago antes de entregar link assinado temporário.
 - Os `.lua`/`.zip` do produto ficam em Storage privado, nunca no repositório público.
 - Com Supabase configurado, o checkout exige uma conta e retoma o carrinho após o login. Os pedidos e pagamentos continuam demonstrativos até conectar um provedor e seu webhook.

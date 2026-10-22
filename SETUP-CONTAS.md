@@ -43,11 +43,19 @@ values ('COLE-AQUI-O-UUID-DA-SUA-CONTA');
 
 4. Saia e entre novamente, depois abra `https://titans-studio.vercel.app/admin.html`. Clientes comuns não ganham acesso ao painel só por terem conta.
 
-O painel registra automaticamente inclusão, edição, publicação, retirada do ar e exclusão de produtos na tabela `public.store_audit_logs`. Quando receber uma versão que inclua essa auditoria, execute novamente o conteúdo completo de `supabase/schema.sql` no SQL Editor para criar a tabela, as políticas de leitura e o gatilho de registro. O script pode ser executado de novo com segurança.
+O painel diferencia **dono**, **editor** e **suporte**. O dono pode administrar perfis; editores podem cadastrar e publicar scripts e versões; suporte pode consultar scripts e auditoria, sem editar nem publicar. Registe as outras contas no site, copie os UUIDs em Authentication → Users e atribua o perfil em **Perfis e acessos** no painel. Execute novamente o conteúdo completo de `supabase/schema.sql` para instalar a estrutura de versões/perfis e regras de acesso. O script pode ser executado novamente com segurança.
 
 ## 5. Adicionar o primeiro script
 
-No painel, informe nome, preço base em reais, categoria, frameworks compatíveis, descrição e selecione `.lua`, `.zip`, `.rar` ou `.7z` (até 50 MB no plano grátis). O arquivo fica no bucket privado e o catálogo recebe apenas os dados comerciais. Marque **Destacar na vitrine**, **Mostrar selo “Novo”** e/ou **Publicar no catálogo**. O painel lista seus produtos, permite publicar/retirar do ar e excluir.
+No painel, informe nome, preço base em reais, categoria, frameworks compatíveis, descrição, versão inicial e selecione `.lua`, `.zip`, `.rar` ou `.7z` (até 50 MB no plano grátis). O arquivo fica no bucket privado e o catálogo recebe apenas os dados comerciais. Marque **Destacar na vitrine**, **Mostrar selo “Novo”** e/ou **Publicar no catálogo**. Para lançar uma correção depois, selecione **Registrar versão**, informe o número (por exemplo `1.1.0`) e descreva as alterações; o catálogo mostra a versão e o histórico público de mudanças.
+
+## 6. E-mails de cadastro TITANS STUDIO
+
+O cadastro guarda o idioma atual no perfil do Supabase (`pt-BR`, `pt-PT`, `en` ou `de`). Os modelos formais com a logo estão em `supabase/email-templates/`. Copie o HTML de `confirm-signup.html` para **Authentication → Emails → Templates → Confirm signup** e o de `magic-link.html` para **Magic Link**. Os assuntos localizados sugeridos e os passos estão em `supabase/email-templates/README.md`.
+
+O HTML deixa o corpo da mensagem com a identidade TITANS STUDIO. Para mudar também o remetente que aparece na caixa de entrada de “Supabase Auth” para “TITANS STUDIO”, configure um SMTP personalizado em **Authentication → SMTP Settings** e defina o nome do remetente. Projetos Free criados a partir de 3 de junho de 2026 não permitem editar os modelos usando só o SMTP padrão; será preciso ligar um serviço SMTP. A Vercel não substitui o SMTP do Supabase.
+
+Depois de mudar o esquema, verifique em Database → Tables/API se `product_releases` tem permissão `SELECT` para `anon` e `authenticated` e `INSERT` para `authenticated`; o SQL já inclui esses `GRANT`s. As políticas RLS continuam limitando o que cada perfil pode fazer.
 
 **Não envie o script real para o repositório GitHub.** O repositório atual é público. O painel guarda o arquivo final no Storage privado; as opções de download para compradores só podem ser liberadas por uma função de servidor após confirmar o pagamento.
 

@@ -31,7 +31,7 @@
     <h1>Uma amostra da experiência <span>Titans Studio.</span></h1>
     <p class="lead">Esta página demonstra como o cliente receberá a prévia depois de solicitar pelo site. O painel abaixo é ilustrativo e será substituído pela demonstração real do script quando ela estiver pronta.</p>
     <section class="order" id="orderDetails" hidden>
-      Prévia individual do pedido <strong id="orderCode"></strong>
+      <span id="orderLead">Prévia individual do pedido</span> <strong id="orderCode"></strong>
       <small id="sessionClock">Acesso temporário válido nesta sessão.</small>
       <ul class="order-items" id="orderItems"></ul>
     </section>
@@ -59,12 +59,30 @@
       const message = document.getElementById('accessMessage');
       const title = document.getElementById('gateTitle');
       const spinner = document.getElementById('accessSpinner');
-      const formatMoney = (value) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const language = localStorage.getItem('titans-language') || 'pt-BR';
+      const C = {
+        'pt-BR': { title:'Prévia demonstrativa', validating:'Validando sua prévia', wait:'Aguarde enquanto confirmamos seu código individual.', unavailable:'Prévia indisponível', rejected:'Este código já foi usado ou expirou. Solicite uma nova prévia à Titans Studio.', sessionExpired:'Seu tempo de prévia acabou. Solicite uma nova prévia à Titans Studio.', linkHelp:'Abra o link enviado por mensagem privada no Discord e entre na mesma conta que recebeu a prévia.', network:'Não foi possível validar agora. Tente novamente mais tarde.', tag:'Prévia temporária de demonstração', heading:'Uma amostra da experiência <span>Titans Studio.</span>', lead:'Esta página demonstra como o cliente receberá a prévia depois de solicitar pelo site. O painel abaixo é ilustrativo e será substituído pela demonstração real do script quando ela estiver pronta.', order:'Prévia individual do pedido', clock:'Acesso temporário válido nesta sessão.', panel:'Painel da Facção · Demonstração', status:'Status do servidor', active:'Membros ativos', recent:'Atividade recente', updated:'Atualizada', area:'Área', state:'Status', update:'Atualização', faction:'Gestão da facção', activity:'Registro de atividades', features:'Recursos do produto', available:'Disponível', now:'Agora', visual:'Prévia visual', demo:'Em demonstração', notice:'Aviso:', noticeText:'esta é apenas uma prévia visual para testar a entrega automática. Não é o script FiveM e não deve ser apresentada como funcionalidade real do produto.',back:'Voltar à loja',faq:'Ver dúvidas da loja',footer:'© 2026 Titans Studio · Demonstração temporária',minutes:'Sessão temporária:' ,remaining:'restantes.',orderWord:'PEDIDO' },
+        'pt-PT': { title:'Pré-visualização de demonstração', validating:'A validar a sua prévia', wait:'Aguarde enquanto confirmamos o seu código individual.', unavailable:'Prévia indisponível', rejected:'Este código já foi utilizado ou expirou. Solicite uma nova prévia à Titans Studio.', sessionExpired:'O tempo da prévia terminou. Solicite uma nova prévia à Titans Studio.', linkHelp:'Abra a ligação enviada por mensagem privada no Discord e entre na mesma conta que recebeu a prévia.', network:'Não foi possível validar neste momento. Tente novamente mais tarde.', tag:'Prévia temporária de demonstração', heading:'Uma amostra da experiência <span>Titans Studio.</span>', lead:'Esta página demonstra como o cliente receberá a prévia depois de a solicitar no site. O painel abaixo é ilustrativo e será substituído pela demonstração real do script quando estiver pronta.', order:'Prévia individual da encomenda', clock:'Acesso temporário válido nesta sessão.', panel:'Painel da Facção · Demonstração', status:'Estado do servidor', active:'Membros ativos', recent:'Atividade recente', updated:'Atualizada', area:'Área', state:'Estado', update:'Atualização', faction:'Gestão da facção', activity:'Registo de atividades', features:'Funcionalidades do produto', available:'Disponível', now:'Agora', visual:'Prévia visual', demo:'Em demonstração', notice:'Aviso:', noticeText:'esta é apenas uma prévia visual para testar a entrega automática. Não é o script FiveM e não deve ser apresentada como funcionalidade real do produto.',back:'Voltar à loja',faq:'Consultar dúvidas da loja',footer:'© 2026 Titans Studio · Demonstração temporária',minutes:'Sessão temporária:' ,remaining:'restantes.',orderWord:'ENCOMENDA' },
+        en: { title:'Demo preview', validating:'Validating your preview', wait:'Please wait while we verify your individual code.', unavailable:'Preview unavailable', rejected:'This code has already been used or expired. Request a new preview from Titans Studio.', sessionExpired:'Your preview session has ended. Request a new preview from Titans Studio.', linkHelp:'Open the link sent by private Discord message and sign in to the same account that received the preview.', network:'We could not validate your preview right now. Please try again later.', tag:'Temporary demo preview', heading:'A sample of the <span>Titans Studio</span> experience.', lead:'This page demonstrates what a customer sees after requesting a preview from the store. The panel below is illustrative and will be replaced with the real script demo when it is ready.', order:'Individual preview for order', clock:'Temporary access is valid for this session.', panel:'Faction Dashboard · Demo', status:'Server status', active:'Active members', recent:'Recent activity', updated:'Updated', area:'Area', state:'Status', update:'Updated', faction:'Faction management', activity:'Activity log', features:'Product features', available:'Available', now:'Now', visual:'Visual preview', demo:'Demo', notice:'Notice:', noticeText:'this is a visual preview used to test delivery. It is not a FiveM script and must not be presented as a real product feature.',back:'Back to store',faq:'Store FAQs',footer:'© 2026 Titans Studio · Temporary demo',minutes:'Temporary session:' ,remaining:'remaining.',orderWord:'ORDER' },
+        de: { title:'Demo-Vorschau', validating:'Vorschau wird geprüft', wait:'Bitte warte, während wir deinen persönlichen Code überprüfen.', unavailable:'Vorschau nicht verfügbar', rejected:'Dieser Code wurde bereits verwendet oder ist abgelaufen. Bitte fordere eine neue Vorschau bei Titans Studio an.', sessionExpired:'Deine Vorschau-Sitzung ist abgelaufen. Bitte fordere eine neue Vorschau bei Titans Studio an.', linkHelp:'Öffne den per privater Discord-Nachricht gesendeten Link und melde dich mit demselben Konto an.', network:'Die Vorschau konnte gerade nicht geprüft werden. Bitte versuche es später erneut.', tag:'Zeitlich begrenzte Demo-Vorschau', heading:'Ein Einblick in die <span>Titans Studio</span>-Erfahrung.', lead:'Diese Seite zeigt, was Kunden nach einer Vorschau-Anfrage im Shop sehen. Das folgende Dashboard ist beispielhaft und wird später durch eine echte Script-Demo ersetzt.', order:'Persönliche Vorschau für Bestellung', clock:'Der temporäre Zugriff gilt für diese Sitzung.', panel:'Fraktions-Dashboard · Demo', status:'Serverstatus', active:'Aktive Mitglieder', recent:'Letzte Aktivität', updated:'Aktualisiert', area:'Bereich', state:'Status', update:'Aktualisiert', faction:'Fraktionsverwaltung', activity:'Aktivitätsprotokoll', features:'Produktfunktionen', available:'Verfügbar', now:'Jetzt', visual:'Visuelle Vorschau', demo:'Demo', notice:'Hinweis:', noticeText:'Dies ist nur eine visuelle Vorschau zum Test der Zustellung. Es ist kein FiveM-Skript und darf nicht als echte Produktfunktion dargestellt werden.',back:'Zurück zum Shop',faq:'Shop-FAQs',footer:'© 2026 Titans Studio · Temporäre Demo',minutes:'Temporäre Sitzung:' ,remaining:'verbleibend.',orderWord:'BESTELLUNG' }
+      }[language] || {};
+      const localized = Object.assign({ title:'Demo preview', validating:'Validating preview', wait:'Please wait while we verify your code.', unavailable:'Preview unavailable', rejected:'This code is used or expired. Request a new Titans Studio preview.', sessionExpired:'Your preview session has ended. Request a new one.', linkHelp:'Open the private Discord link and sign into the same account.', network:'Unable to validate right now. Try again later.', clock:'Temporary access is valid for this session.', minutes:'Temporary session:', remaining:'remaining.', orderWord:'ORDER' }, C);
+      const locale = language === 'de' ? 'de-DE' : language === 'pt-PT' ? 'pt-PT' : language === 'en' ? 'en-US' : 'pt-BR';
+      const formatMoney = (value) => Number(value).toLocaleString(locale, { style: 'currency', currency: 'BRL' });
+      document.documentElement.lang = language;
+      document.title = localized.title + ' | TITANS STUDIO';
+      const put=(selector,value,html=false)=>{const el=document.querySelector(selector);if(el){if(html)el.innerHTML=value;else el.textContent=value}};
+      put('.tag',localized.tag);put('h1',localized.heading,true);put('.lead',localized.lead);put('.bar span:first-child',localized.panel);
+      put('.grid .card:nth-child(1) small',localized.status);put('.grid .card:nth-child(2) small',localized.active);put('.grid .card:nth-child(3) small',localized.recent);put('.grid .card:nth-child(3) strong',localized.updated);
+      put('.row.head span:nth-child(1)',localized.area);put('.row.head span:nth-child(2)',localized.state);put('.row.head span:nth-child(3)',localized.update);
+      put('.row:nth-child(2) span:first-child',localized.faction);put('.row:nth-child(3) span:first-child',localized.activity);put('.row:nth-child(4) span:first-child',localized.features);
+      document.querySelectorAll('.row:not(.head) span:nth-child(2)').forEach(el=>el.textContent=localized.available);document.querySelectorAll('.row:not(.head) span:nth-child(3)').forEach(el=>el.textContent=localized.now);put('.row:nth-child(4) span:nth-child(2)',localized.visual);put('.row:nth-child(4) span:nth-child(3)',localized.demo);
+      const noticeBox=document.querySelector('.notice');if(noticeBox)noticeBox.textContent=localized.notice+' '+localized.noticeText;put('.actions .btn:first-child',localized.back);put('.actions .btn:last-child',localized.faq);put('footer',localized.footer);put('#gateTitle',localized.validating);put('#accessMessage',localized.wait);put('#orderLead',localized.order);put('#sessionClock',localized.clock);
 
       function reject(text) {
         spinner.hidden = true;
-        title.textContent = 'Prévia indisponível';
-        message.textContent = text || 'Este código já foi usado ou expirou. Solicite uma nova prévia à Titans Studio.';
+        title.textContent = localized.unavailable;
+        message.textContent = text || localized.rejected;
       }
 
       async function getSession() {
@@ -86,7 +104,7 @@
         }
         document.getElementById('watermark').replaceChildren(...Array.from({length: 12}, () => {
           const stamp = document.createElement('span');
-          stamp.textContent = `TITANS STUDIO · PEDIDO #${orderCode}`;
+          stamp.textContent = `TITANS STUDIO · ${localized.orderWord} #${orderCode}`;
           return stamp;
         }));
         const clock = document.getElementById('sessionClock');
@@ -94,9 +112,9 @@
           const seconds = Math.max(0, Math.ceil((Number(data.sessionExpiry) - Date.now()) / 1000));
           if (seconds <= 0) {
             document.body.classList.remove('authorized');
-            return reject('Seu tempo de prévia acabou. Solicite uma nova prévia à Titans Studio.');
+            return reject(localized.sessionExpired);
           }
-          clock.textContent = `Sessão temporária: ${Math.floor(seconds / 60)} min ${String(seconds % 60).padStart(2, '0')} s restantes.`;
+          clock.textContent = `${localized.minutes} ${Math.floor(seconds / 60)} min ${String(seconds % 60).padStart(2, '0')} s ${localized.remaining}`;
         };
         updateClock();
         window.setInterval(updateClock, 1000);
@@ -108,9 +126,9 @@
         try {
           const data = await getSession();
           if (data?.ok) return show(data);
-          return reject('Abra o link enviado por mensagem privada no Discord e entre na mesma conta que recebeu a prévia.');
+          return reject(localized.linkHelp);
         } catch {
-          return reject('Não foi possível validar agora. Tente novamente mais tarde.');
+          return reject(localized.network);
         }
       }
       init();
